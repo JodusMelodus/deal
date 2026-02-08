@@ -1,0 +1,30 @@
+name: 24/7 Discord Bot
+on:
+  schedule:
+    - cron: '0 */5 * * *'
+  workflow_dispatch:     
+  push:
+    branches: [ main ]   
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          pip install discord.py requests python-dotenv
+
+      - name: Run Bot
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+    
+        run: timeout 5h python main.py || true
