@@ -5,23 +5,18 @@ import requests
 from dotenv import load_dotenv
 import datetime
 
-# 1. Load Environment Variables
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-# We use a fallback empty string to avoid errors during local testing
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-# 2. Setup Bot Intents
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# 3. DAILY FEATURE (Fixed for GitHub Actions)
-# Since the bot restarts every 5 hours, we check the clock every hour instead.
 @tasks.loop(minutes=60)
 async def daily_deals():
     now = datetime.datetime.utcnow()
-    # This will only trigger during the 12:00 UTC hour
+
     if now.hour == 12:
         channel = bot.get_channel(int(CHANNEL_ID))
         if channel:
@@ -36,34 +31,52 @@ async def daily_deals():
             except Exception as e:
                 print(f"Error fetching deals: {e}")
 
-# 4. MANUAL COMMANDS
 @bot.command()
 async def deal(ctx, *, game: str):
-    """Search for a specific game: !deal [name]"""
-    url = f"https://www.cheapshark.com/api/1.1/deals?title={game}&limit=1"
-    data = requests.get(url).json()
+    """Search for a Steam deal: !deal [name]"""
+
+    url = f"https://www.cheapshark.com/api/1.1/deals?title={game}&storeID=1&limit=1"
     
-    if data:
-        d = data[0]
-        # Using an 'Embed' link format <link> hides the big ugly preview
-        await ctx.send(f"✅ **{d['title']}** is currently **${d['salePrice']}**!\nLink: <https://www.cheapshark.com/redirect?dealID={d['dealID']}>")
-    else:
-        await ctx.send(f"❌ No deals found for '{game}'.")
+    try:
+        response = requests.get(url)
+        data = response.json()
+        
+        if data:
+            d = data[0]
+            title = d['title']
+            sale_price = d['salePrice']
+            normal_price = d['normalPrice']
+            savings = round(float(d['savings']))
+            
+
+            steam_id = d['steamAppID']
+            steam_url = f"https://store.steampowered.com/app/{steam_id}/"
+            
+            message = (
+                f"✅ **{title}** is on sale!\n"
+                f"💰 Price: **${sale_price}** (~~${normal_price}~~) — {savings}% off\n"
+                f"🔗 View on Steam: <{steam_url}>"
+            )
+            await ctx.send(message)
+        else:
+            await ctx.send(f"❌ No Steam deals found for '{game}'.")
+            
+    except Exception as e:
+        await ctx.send("⚠️ Error reaching the deal database.")
+        print(f"API Error: {e}")
 
 @bot.command()
 async def ping(ctx):
     """Test if the bot is alive"""
     await ctx.send(f"🏓 Pong! Latency: {round(bot.latency * 1000)}ms")
 
-# 5. BOT STARTUP
 @bot.event
 async def on_ready():
     print(f"✅ Bot is online as {bot.user}")
-    # Start the background task
+
     if not daily_deals.is_running():
         daily_deals.start()
 
-# Start the bot
 if __name__ == "__main__":
     if TOKEN:
         bot.run(TOKEN)
