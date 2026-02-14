@@ -28,6 +28,8 @@ async def on_message(message):
             await deal(ctx, content)
         else:
             await message.channel.send("👋 Mention me with a game name, 'free', or 'under [price]'!")
+    else:
+        await message.channel.send("I'm so lonelyyyyy, I have nobodyyyyyy 🎶🐌")
 
 async def deal(ctx, cmd: str):
     cmds = cmd.split()
