@@ -43,6 +43,8 @@ async def deal(ctx, cmd: str):
             params["upperPrice"] = cmds[1]
         elif cmds[0].lower() == "free":
             params["upperPrice"] = 0
+        elif cmds[0].lower() == "top": # Test
+            pass
         else:
             params["title"] = cmd
 
@@ -51,11 +53,18 @@ async def deal(ctx, cmd: str):
 
         if games:
             for game in games[:3]:
-                title = game['title']
-                price = game['salePrice']
-                s_id = game['steamAppID']
+                title = game["title"]
+                thumb = game["thumb"]
+                price = game["salePrice"]
+                s_id = game["steamAppID"]
                 link = f"https://store.steampowered.com/app/{s_id}/"
-                await ctx.send(f"✅ **{title}** is **${price}**!\n<{link}>")
+
+                embed = discord.Embed(
+                    description=f"✅ **{title}** is **${price}**!\n<{link}>",
+                    color=discord.Color.green()
+                )
+                embed.set_thumbnail(url=thumb)
+                await ctx.send(embed=embed)
         else:
             await ctx.send("❓ No deals found for that request.")
             
